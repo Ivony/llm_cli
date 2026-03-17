@@ -1,5 +1,6 @@
 import requests
-from typing import Dict, List, Any
+import json
+from typing import Dict, List, Any, Generator
 from .base import ModelAdapter
 
 
@@ -18,7 +19,7 @@ class OpenAIAdapter(ModelAdapter):
         return self.chat(messages, **kwargs)
     
     def chat(self, messages: List[Dict[str, str]], **kwargs) -> str:
-        """进行对话"""
+        """进行对话（非流式）"""
         url = f"{self.base_url}/chat/completions"
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -36,6 +37,40 @@ class OpenAIAdapter(ModelAdapter):
         response.raise_for_status()
         
         return response.json()["choices"][0]["message"]["content"]
+    
+    def chat_stream(self, messages: List[Dict[str, str]], **kwargs) -> Generator[str, None, None]:
+        """进行对话（流式）"""
+        url = f"{self.base_url}/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        data = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": kwargs.get("temperature", self.config.get("temperature", 0.7)),
+            "max_tokens": kwargs.get("max_tokens", self.config.get("max_tokens", 1000)),
+            "stream": True
+        }
+        
+        response = requests.post(url, headers=headers, json=data, stream=True)
+        response.raise_for_status()
+        
+        for chunk in response.iter_lines():
+            if chunk:
+                chunk = chunk.decode('utf-8')
+                if chunk.startswith('data: '):
+                    chunk = chunk[6:]
+                    if chunk == '[DONE]':
+                        break
+                    try:
+                        data = json.loads(chunk)
+                        content = data.get('choices', [{}])[0].get('delta', {}).get('content')
+                        if content:
+                            yield content
+                    except json.JSONDecodeError:
+                        pass
     
     def get_model_info(self) -> Dict[str, Any]:
         """获取模型信息"""

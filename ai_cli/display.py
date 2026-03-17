@@ -28,48 +28,23 @@ class DisplayManager:
     
     def show_user_input(self, text: str):
         """显示用户输入"""
-        panel = Panel(
-            Text(text, style="user"),
-            title="User",
-            border_style="green"
-        )
-        self.console.print(panel)
+        self.console.print(f"[bold green]User:[/bold green] {text}")
     
     def show_model_output(self, text: str):
         """显示模型输出"""
-        panel = Panel(
-            Text(text, style="assistant"),
-            title="Assistant",
-            border_style="blue"
-        )
-        self.console.print(panel)
+        self.console.print(f"[bold blue]Assistant:[/bold blue] {text}")
     
     def show_error(self, message: str):
         """显示错误信息"""
-        panel = Panel(
-            Text(message, style="error"),
-            title="Error",
-            border_style="red"
-        )
-        self.console.print(panel)
+        self.console.print(f"[bold red]Error:[/bold red] {message}")
     
     def show_info(self, message: str):
         """显示信息"""
-        panel = Panel(
-            Text(message, style="info"),
-            title="Info",
-            border_style="cyan"
-        )
-        self.console.print(panel)
+        self.console.print(f"[bold cyan]Info:[/bold cyan] {message}")
     
     def show_warning(self, message: str):
         """显示警告"""
-        panel = Panel(
-            Text(message, style="warning"),
-            title="Warning",
-            border_style="yellow"
-        )
-        self.console.print(panel)
+        self.console.print(f"[bold yellow]Warning:[/bold yellow] {message}")
     
     def show_loading(self, message: str = "Thinking..."):
         """显示加载状态"""

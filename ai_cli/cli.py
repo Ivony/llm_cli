@@ -138,25 +138,27 @@ class AICLI:
             self.display.show_error(f"Failed to create adapter: {e}")
             return
         
-        # 显示加载状态
-        with self.display.show_loading() as progress:
-            progress.add_task("Generating response...", total=None)
+        # 构建消息历史
+        messages = self.session.get_messages()
+        
+        try:
+            # 调用模型（流式）
+            self.display.console.print("[bold blue]Assistant:[/bold blue] ", end="")
+            full_response = ""
             
-            # 构建消息历史
-            messages = self.session.get_messages()
+            for chunk in adapter.chat_stream(messages):
+                full_response += chunk
+                # 实时输出
+                self.display.console.print(chunk, end="", flush=True)
             
-            try:
-                # 调用模型
-                response = adapter.chat(messages)
-                
-                # 显示模型输出
-                self.display.show_model_output(response)
-                
-                # 添加到历史记录
-                self.session.add_message("assistant", response)
-                
-            except Exception as e:
-                self.display.show_error(f"Failed to get response: {e}")
+            # 换行
+            self.display.console.print()
+            
+            # 添加到历史记录
+            self.session.add_message("assistant", full_response)
+            
+        except Exception as e:
+            self.display.show_error(f"Failed to get response: {e}")
 
 
 def main():

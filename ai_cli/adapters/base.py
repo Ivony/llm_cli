@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Generator
 
 
 class ModelAdapter(ABC):
@@ -16,6 +16,11 @@ class ModelAdapter(ABC):
     @abstractmethod
     def chat(self, messages: List[Dict[str, str]], **kwargs) -> str:
         """进行对话"""
+        pass
+    
+    @abstractmethod
+    def chat_stream(self, messages: List[Dict[str, str]], **kwargs) -> Generator[str, None, None]:
+        """进行对话（流式）"""
         pass
     
     @abstractmethod
