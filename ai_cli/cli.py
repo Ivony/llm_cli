@@ -116,9 +116,6 @@ class AICLI:
 
     def _handle_input(self, user_input: str):
         """处理用户输入"""
-        # 显示用户输入
-        self.display.show_user_input(user_input)
-        
         # 添加到历史记录
         self.session.add_message("user", user_input)
         
