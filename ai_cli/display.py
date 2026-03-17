@@ -30,9 +30,9 @@ class DisplayManager:
         """显示用户输入"""
         self.console.print(f"[bold green]User:[/bold green] {text}")
     
-    def show_model_output(self, text: str):
+    def show_model_output(self, text: str, provider_name: str = "Assistant"):
         """显示模型输出"""
-        self.console.print(f"[bold blue]Assistant:[/bold blue] {text}")
+        self.console.print(f"[bold blue]{provider_name}:[/bold blue] {text}")
     
     def show_error(self, message: str):
         """显示错误信息"""

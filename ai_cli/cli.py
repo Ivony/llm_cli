@@ -96,7 +96,8 @@ class AICLI:
             if role == "user":
                 self.display.show_user_input(content)
             else:
-                self.display.show_model_output(content)
+                provider_name = self.session.get_current_provider()
+                self.display.show_model_output(content, provider_name)
     
     def _show_config(self):
         """显示配置"""
@@ -139,8 +140,11 @@ class AICLI:
         messages = self.session.get_messages()
         
         try:
+            # 获取当前提供程序名称
+            provider_name = self.session.get_current_provider()
+            
             # 调用模型（流式）
-            self.display.console.print("[bold blue]Assistant:[/bold blue] ", end="")
+            self.display.console.print(f"[bold blue]{provider_name}:[/bold blue] ", end="")
             full_response = ""
             
             for chunk in adapter.chat_stream(messages):
