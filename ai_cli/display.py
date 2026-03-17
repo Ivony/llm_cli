@@ -123,6 +123,7 @@ class DisplayManager:
         /model set provider <name>  Set current provider
         
         Load command usage:
-        /load <file_path>  Load local file content to conversation context
+        /load <file_path> [-n NAME]  Load local file content to conversation context
+        -n, --name: Optional. Friendly name for the file
         """, style="info")
         self.console.print(help_text)

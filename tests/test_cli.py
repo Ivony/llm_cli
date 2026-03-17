@@ -104,9 +104,9 @@ def test_handle_model_command_list(mock_prompt_session):
 
         cli = AICLI()
 
-        with patch.object(cli, '_list_providers') as mock_list_providers, \
-             patch.object(cli, '_list_endpoints') as mock_list_endpoints:
-            cli._handle_model_command(["list"])
+        with patch.object(cli.model_command, '_list_providers') as mock_list_providers, \
+             patch.object(cli.model_command, '_list_endpoints') as mock_list_endpoints:
+            cli.model_command.handle(["list"])
             mock_list_endpoints.assert_called_once()
             mock_list_providers.assert_called_once()
 
@@ -120,8 +120,8 @@ def test_handle_model_command_add_provider(mock_prompt_session):
 
         cli = AICLI()
 
-        with patch.object(cli, '_add_provider') as mock_add_provider:
-            cli._handle_model_command(["add", "provider", "test", "openai", "test-key", "test-model"])
+        with patch.object(cli.model_command, '_add_provider') as mock_add_provider:
+            cli.model_command.handle(["add", "provider", "test", "openai", "test-key", "test-model"])
             mock_add_provider.assert_called_once_with(["test", "openai", "test-key", "test-model"])
 
 @patch('ai_cli.cli.PromptSession')
@@ -134,8 +134,8 @@ def test_handle_model_command_remove_provider(mock_prompt_session):
 
         cli = AICLI()
 
-        with patch.object(cli, '_remove_provider') as mock_remove_provider:
-            cli._handle_model_command(["remove", "provider", "test"])
+        with patch.object(cli.model_command, '_remove_provider') as mock_remove_provider:
+            cli.model_command.handle(["remove", "provider", "test"])
             mock_remove_provider.assert_called_once_with("test")
 
 @patch('ai_cli.cli.PromptSession')
@@ -149,7 +149,7 @@ def test_handle_model_command_set_provider(mock_prompt_session):
         cli = AICLI()
 
         with patch.object(cli.session, 'set_provider') as mock_set_provider:
-            cli._handle_model_command(["set", "provider", "test"])
+            cli.model_command.handle(["set", "provider", "test"])
             mock_set_provider.assert_called_once_with("test")
 
 
@@ -164,7 +164,7 @@ def test_handle_context_command(mock_prompt_session):
         cli = AICLI()
         
         with patch.object(cli.display, 'show_info') as mock_show_info:
-            cli._handle_context_command([])
+            cli.context_command.handle([])
             mock_show_info.assert_called_once()
 
 
@@ -179,6 +179,6 @@ def test_handle_context_command_with_limit(mock_prompt_session):
         cli = AICLI()
         
         with patch.object(cli.display, 'show_info') as mock_show_info:
-            cli._handle_context_command(["50"])
+            cli.context_command.handle(["50"])
             mock_show_info.assert_called_once()
             assert cli.session.max_history == 50
