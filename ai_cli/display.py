@@ -113,6 +113,7 @@ class DisplayManager:
         /model remove      Remove an endpoint or provider
         /model set         Set current provider
         /context           Manage context length
+        /load              Load local file to context
         
         Model command usage:
         /model list [endpoints|providers]      List specific configurations
@@ -120,5 +121,8 @@ class DisplayManager:
         /model add provider <endpoint> [-k API_KEY] [-n NAME] [-m MODEL]  Add a provider
         /model remove <endpoint|provider> <name>  Remove a configuration
         /model set provider <name>  Set current provider
+        
+        Load command usage:
+        /load <file_path>  Load local file content to conversation context
         """, style="info")
         self.console.print(help_text)

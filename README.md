@@ -49,6 +49,7 @@
 - `/clear` - 清屏
 - `/history` - 显示对话历史
 - `/config` - 显示当前配置
+- `/load` - 加载本地文件到上下文
 
 ### 模型配置管理
 
@@ -134,6 +135,16 @@
 ```bash
 /model set provider my-provider
 user> 你好
+```
+
+### 加载本地文件到上下文
+
+```bash
+# 加载本地文件到对话上下文
+/load example.txt
+
+# 加载后可以直接与模型讨论文件内容
+user> 请分析这个文件的内容
 ```
 
 ## 配置

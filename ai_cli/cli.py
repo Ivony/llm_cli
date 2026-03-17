@@ -68,6 +68,8 @@ class AICLI:
             self._handle_model_command(parts[1:] if len(parts) > 1 else [])
         elif cmd == "/context":
             self._handle_context_command(parts[1:] if len(parts) > 1 else [])
+        elif cmd == "/load":
+            self._handle_load_command(parts[1:] if len(parts) > 1 else [])
         else:
             self.display.show_error(f"Unknown command: {cmd}")
     
@@ -320,6 +322,34 @@ class AICLI:
         self.config.remove_provider(name)
         self.display.show_info(f"Removed provider: {name}")
     
+    def _handle_load_command(self, args: list):
+        """加载本地文件到上下文"""
+        if not args:
+            self.display.show_error("Usage: /load <file_path>")
+            return
+        
+        file_path = args[0]
+        
+        try:
+            # 读取文件内容
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            
+            # 构建文件内容消息
+            file_message = f"[FILE]{file_path}[/FILE]\n{content}"
+            
+            # 添加到历史记录
+            self.session.add_message("user", file_message)
+            
+            # 显示成功信息
+            self.display.show_info(f"Loaded file: {file_path}")
+            self.display.show_user_input(f"[FILE] {file_path}")
+            
+        except FileNotFoundError:
+            self.display.show_error(f"File not found: {file_path}")
+        except Exception as e:
+            self.display.show_error(f"Failed to load file: {e}")
+
     def _handle_input(self, user_input: str):
         """处理用户输入"""
         # 显示用户输入
