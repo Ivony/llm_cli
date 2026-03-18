@@ -102,22 +102,27 @@ class ModelCommand:
             self.display.show_info("No providers configured")
             return
         
-        for i, (name, config) in enumerate(providers.items()):
-            # 在项与项之间添加空行（除了第一项）
-            if i > 0:
-                self.display.console.print()
-                
-            current = " [bold green](当前)[/bold green]" if name == self.session.current_provider else ""
-            color = "green" if name == self.session.current_provider else "blue"
+        # 分离当前提供程序和其他提供程序
+        current_provider = None
+        other_providers = []
+        
+        for name, config in providers.items():
+            if name == self.session.current_provider:
+                current_provider = (name, config)
+            else:
+                other_providers.append((name, config))
+        
+        # 先显示当前提供程序
+        if current_provider:
+            name, config = current_provider
+            current = " [bold green](当前)[/bold green]"
             model = config.get('default_model')
             api_key = config.get('api_key', '')
             api_key_display = f"***{api_key[-4:]}" if api_key else "[gray]未设置[/gray]"
             
             # 显示提供程序基本信息，当前使用的提供程序使用更明显的强调
-            if name == self.session.current_provider:
-                self.display.console.print(f"[bold green bg_black]{name}{current}[/bold green bg_black] | {model} | {api_key_display}")
-            else:
-                self.display.console.print(f"[bold {color}]{name}[/bold {color}] | {model} | {api_key_display}")
+            # 使用no_color标记防止数字被自动着色
+            self.display.console.print(f"[bold green bg_black]{name}{current}[/bold green bg_black] | [no_color]{model}[/no_color] | [no_color]{api_key_display}[/no_color]")
             
             # 显示关联端点信息
             endpoint = config.get('endpoint')
@@ -126,7 +131,7 @@ class ModelCommand:
             if endpoint_config:
                 protocol = endpoint_config.get('protocol')
                 base_url = endpoint_config.get('base_url')
-                self.display.console.print(f"  └── 端点: {endpoint} ({protocol}, {base_url})")
+                self.display.console.print(f"  └── 端点: [no_color]{endpoint} ({protocol}, {base_url})[/no_color]")
             else:
                 # 尝试通过base_url查找端点
                 endpoint_key = self.config.get_endpoint_by_base_url(endpoint)
@@ -134,9 +139,47 @@ class ModelCommand:
                     endpoint_config = self.config.get_endpoint_config(endpoint_key)
                     protocol = endpoint_config.get('protocol')
                     base_url = endpoint_config.get('base_url')
-                    self.display.console.print(f"  └── 端点: {endpoint_key} ({protocol}, {base_url})")
+                    self.display.console.print(f"  └── 端点: [no_color]{endpoint_key} ({protocol}, {base_url})[/no_color]")
                 else:
-                    self.display.console.print(f"  └── 端点: {endpoint} [gray](未找到)[/gray]")
+                    self.display.console.print(f"  └── 端点: [no_color]{endpoint}[/no_color] [gray](未找到)[/gray]")
+            
+            # 如果还有其他提供程序，添加空行
+            if other_providers:
+                self.display.console.print()
+        
+        # 显示其他提供程序
+        for i, (name, config) in enumerate(other_providers):
+            # 在项与项之间添加空行（除了第一项）
+            if i > 0:
+                self.display.console.print()
+                
+            color = "blue"
+            model = config.get('default_model')
+            api_key = config.get('api_key', '')
+            api_key_display = f"***{api_key[-4:]}" if api_key else "[gray]未设置[/gray]"
+            
+            # 显示提供程序基本信息
+            # 使用no_color标记防止数字被自动着色
+            self.display.console.print(f"[bold {color}]{name}[/bold {color}] | [no_color]{model}[/no_color] | [no_color]{api_key_display}[/no_color]")
+            
+            # 显示关联端点信息
+            endpoint = config.get('endpoint')
+            endpoints = self.config.config.get("endpoints", {})
+            endpoint_config = endpoints.get(endpoint)
+            if endpoint_config:
+                protocol = endpoint_config.get('protocol')
+                base_url = endpoint_config.get('base_url')
+                self.display.console.print(f"  └── 端点: [no_color]{endpoint} ({protocol}, {base_url})[/no_color]")
+            else:
+                # 尝试通过base_url查找端点
+                endpoint_key = self.config.get_endpoint_by_base_url(endpoint)
+                if endpoint_key:
+                    endpoint_config = self.config.get_endpoint_config(endpoint_key)
+                    protocol = endpoint_config.get('protocol')
+                    base_url = endpoint_config.get('base_url')
+                    self.display.console.print(f"  └── 端点: [no_color]{endpoint_key} ({protocol}, {base_url})[/no_color]")
+                else:
+                    self.display.console.print(f"  └── 端点: [no_color]{endpoint}[/no_color] [gray](未找到)[/gray]")
     
     def _list_endpoints(self):
         """列出所有端点配置"""
@@ -154,7 +197,8 @@ class ModelCommand:
             base_url = config.get('base_url')
             
             # 显示端点基本信息
-            self.display.console.print(f"[bold cyan]{name}[/bold cyan] | {protocol} | {base_url}")
+            # 使用no_color标记防止数字被自动着色
+            self.display.console.print(f"[bold cyan]{name}[/bold cyan] | [no_color]{protocol}[/no_color] | [no_color]{base_url}[/no_color]")
             
             # 查找使用该端点的提供程序
             providers = self.config.config.get("providers", {})
@@ -170,7 +214,7 @@ class ModelCommand:
             # 显示使用该端点的提供程序
             if using_providers:
                 providers_str = ", ".join(using_providers)
-                self.display.console.print(f"  └── 使用: {providers_str}")
+                self.display.console.print(f"  └── 使用: [no_color]{providers_str}[/no_color]")
             else:
                 self.display.console.print(f"  └── 使用: [gray]无[/gray]")
     
