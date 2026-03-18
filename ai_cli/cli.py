@@ -2,6 +2,7 @@ import sys
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+from prompt_toolkit.completion import Completer, Completion
 from .config import ConfigManager
 from .display import DisplayManager
 from .session import SessionManager
@@ -9,6 +10,36 @@ from .adapters import adapter_factory
 from .commands.model_command import ModelCommand
 from .commands.context_command import ContextCommand
 from .commands.load_command import LoadCommand
+
+
+class CommandCompleter(Completer):
+    """命令补全器"""
+    
+    def __init__(self):
+        # 定义所有可用的命令
+        self.commands = [
+            "/help",
+            "/exit",
+            "/clear",
+            "/history",
+            "/config",
+            "/model",
+            "/model list",
+            "/model add",
+            "/model remove",
+            "/model set",
+            "/context",
+            "/load"
+        ]
+    
+    def get_completions(self, document, complete_event):
+        """获取补全选项"""
+        text = document.text
+        if text.startswith("/"):
+            # 过滤匹配的命令
+            matches = [cmd for cmd in self.commands if cmd.startswith(text)]
+            for match in matches:
+                yield Completion(match, start_position=-len(text))
 
 
 class AICLI:
@@ -20,7 +51,8 @@ class AICLI:
         self.session = SessionManager(self.config, self.display)
         self.prompt_session = PromptSession(
             history=InMemoryHistory(),
-            auto_suggest=AutoSuggestFromHistory()
+            auto_suggest=AutoSuggestFromHistory(),
+            completer=CommandCompleter()
         )
         # 初始化命令处理器
         self.model_command = ModelCommand(self)
@@ -150,7 +182,7 @@ class AICLI:
             for chunk in adapter.chat_stream(messages):
                 full_response += chunk
                 # 实时输出
-                self.display.console.print(chunk, end="", flush=True)
+                self.display.console.print(chunk, end="")
             
             # 换行
             self.display.console.print()
