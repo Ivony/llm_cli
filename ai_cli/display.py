@@ -13,7 +13,8 @@ class DisplayManager:
         self.config = config
         self.console = Console(
             theme=self._get_theme(),
-            color_system="auto" if config.get("display.color_scheme") == "auto" else "standard"
+            color_system="auto" if config.get("display.color_scheme") == "auto" else "standard",
+            highlight=False  # 禁用自动颜色检测，避免数字被自动着色
         )
     
     def _get_theme(self):
