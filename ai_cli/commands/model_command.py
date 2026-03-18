@@ -36,16 +36,19 @@ class ModelCommand:
         if len(args) > 0:
             target = args[0].lower()
             if target == "endpoints":
+                self.display.console.print("[bold cyan]=== 端点配置 ===[/bold cyan]")
                 self._list_endpoints()
             elif target == "providers":
+                self.display.console.print("[bold green]=== 提供程序配置 ===[/bold green]")
                 self._list_providers()
             else:
                 self.display.show_error(f"Unknown target: {target}")
         else:
             # 显示所有配置
-            self.display.show_info("=== Endpoints ===")
+            self.display.console.print("[bold cyan]=== 端点配置 ===[/bold cyan]")
             self._list_endpoints()
-            self.display.show_info("\n=== Providers ===")
+            self.display.console.print()
+            self.display.console.print("[bold green]=== 提供程序配置 ===[/bold green]")
             self._list_providers()
     
     def _handle_add(self, args: List[str]):
@@ -99,7 +102,11 @@ class ModelCommand:
             self.display.show_info("No providers configured")
             return
         
-        for name, config in providers.items():
+        for i, (name, config) in enumerate(providers.items()):
+            # 在项与项之间添加空行（除了第一项）
+            if i > 0:
+                self.display.console.print()
+                
             current = " (current)" if name == self.session.current_provider else ""
             color = "green" if name == self.session.current_provider else "blue"
             model = config.get('default_model')
@@ -135,7 +142,11 @@ class ModelCommand:
             self.display.show_info("No endpoints configured")
             return
         
-        for name, config in endpoints.items():
+        for i, (name, config) in enumerate(endpoints.items()):
+            # 在项与项之间添加空行（除了第一项）
+            if i > 0:
+                self.display.console.print()
+                
             protocol = config.get('protocol')
             base_url = config.get('base_url')
             
