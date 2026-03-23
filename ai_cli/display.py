@@ -1,5 +1,6 @@
 """
 显示管理器 - 使用Textual组件实现流式Markdown渲染
+UI层：专注于展示和用户交互，业务逻辑委托给model_chat模块
 """
 import asyncio
 from textual.app import App, ComposeResult
@@ -9,6 +10,9 @@ from textual.widget import Widget
 from textual.reactive import var
 from textual.events import Click
 from typing import Optional, List, Dict, Any
+
+# 导入对话管理模块（业务逻辑层）
+from .model_chat import ModelChatManager, ChatResult
 
 
 class MessageContent(Static):
@@ -42,7 +46,16 @@ class Message(Widget):
 
 
 class AIChatApp(App):
-    """AI聊天应用 - 支持流式Markdown渲染"""
+    """AI聊天应用 - 支持流式Markdown渲染
+    UI层：专注于展示和用户交互，业务逻辑委托给ModelChatManager
+    """
+    
+    # 对话管理器（业务逻辑层）
+    chat_manager: Optional[ModelChatManager] = var(None)
+    # 忙状态（在流式输出期间）
+    is_busy: bool = var(False)
+    # 当前助手消息组件（用于流式更新）
+    _current_assistant_message: Optional[Message] = None
     
     CSS = """
     Screen {
@@ -192,6 +205,9 @@ class AIChatApp(App):
         self.cli = cli
         self.user_input_event = asyncio.Event()
         self._message_id_counter = 0
+        # 初始化对话管理器
+        if cli:
+            self.chat_manager = ModelChatManager(cli)
     
     def compose(self) -> ComposeResult:
         """构建UI"""
@@ -307,68 +323,32 @@ Available commands:
         self.add_system_message(f"Unknown command: {command}")
     
     async def handle_user_input(self, user_input: str) -> None:
-        """处理用户输入 - 使用httpx异步请求避免UI阻塞"""
-        if self.cli:
-            try:
-                # 获取当前提供程序配置
-                provider_config = self.cli.session.get_provider_config()
-                if not provider_config.get("api_key"):
-                    self.hide_loading()
-                    self.add_system_message("API key not set for current provider")
-                    return
-                
-                # 创建适配器
-                try:
-                    adapter = self.cli.adapter_factory(
-                        provider_config["protocol"],
-                        provider_config
-                    )
-                except Exception as e:
-                    self.hide_loading()
-                    self.add_system_message(f"Failed to create adapter: {e}")
-                    return
-                
-                # 构建消息历史
-                messages = self.cli.session.get_messages()
-                
-                # 获取当前提供程序名称
-                provider_name = self.cli.session.get_current_provider()
-                
-                # 开始流式输出
-                self.start_assistant_message()
-                
-                # 使用httpx异步流式请求，无需线程
-                full_response = ""
-                try:
-                    if hasattr(adapter, 'chat_stream_async'):
-                        # 支持异步流式接口（httpx版本）
-                        async for chunk in adapter.chat_stream_async(messages):
-                            full_response += chunk
-                            self.update_assistant_message(full_response)
-                            # 给UI刷新的机会
-                            await asyncio.sleep(0)
-                    else:
-                        # 兼容同步接口（回退方案）
-                        for chunk in adapter.chat_stream(messages):
-                            full_response += chunk
-                            self.update_assistant_message(full_response)
-                            await asyncio.sleep(0)
-                finally:
-                    # 关闭httpx客户端（如果适配器支持）
-                    if hasattr(adapter, 'close'):
-                        if asyncio.iscoroutinefunction(adapter.close):
-                            await adapter.close()
-                        else:
-                            adapter.close()
-                
-                # 添加到历史记录
-                self.cli.session.add_message("assistant", full_response)
-                
-            except Exception as e:
-                self.add_system_message(f"Failed to get response: {str(e)}")
-            finally:
-                self.hide_loading()
-                self.end_assistant_message()
+        """
+        处理用户输入 - UI层只需处理展示，业务逻辑委托给chat_manager
+        职责分离：UI层只关心如何显示，业务逻辑由ModelChatManager处理
+        """
+        if not self.chat_manager:
+            return
+        
+        try:
+            # 开始流式输出（创建助手消息占位）
+            self.start_assistant_message()
+            
+            # 调用业务逻辑层处理消息，通过回调更新UI
+            result = await self.chat_manager.send_message(
+                user_input,
+                on_chunk=self.update_assistant_message  # 流式更新回调
+            )
+            
+            # 处理结果
+            if not result.success:
+                self.add_system_message(f"Failed to get response: {result.error}")
+            
+        except Exception as e:
+            self.add_system_message(f"Error: {str(e)}")
+        finally:
+            self.hide_loading()
+            self.end_assistant_message()
     
     def add_user_message(self, content: str) -> None:
         """添加用户消息"""
