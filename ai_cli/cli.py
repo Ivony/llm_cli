@@ -1,4 +1,5 @@
 import sys
+from typing import Optional
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
@@ -45,15 +46,20 @@ class CommandCompleter(Completer):
 class AICLI:
     """AI命令行工具"""
     
-    def __init__(self):
+    def __init__(self, use_textual: bool = True):
         self.config = ConfigManager()
-        self.display = DisplayManager(self.config)
+        self.use_textual = use_textual
+        self.display = DisplayManager(self.config, cli=self)
         self.session = SessionManager(self.config, self.display)
+        self.adapter_factory = adapter_factory
+        
+        # 传统CLI模式下的prompt_session（始终创建以保持测试兼容性）
         self.prompt_session = PromptSession(
             history=InMemoryHistory(),
             auto_suggest=AutoSuggestFromHistory(),
             completer=CommandCompleter()
         )
+        
         # 初始化命令处理器
         self.model_command = ModelCommand(self)
         self.context_command = ContextCommand(self)
@@ -61,6 +67,16 @@ class AICLI:
     
     def run(self):
         """运行交互式会话"""
+        if self.use_textual:
+            # Textual模式 - 使用Textual App进行完整的GUI交互
+            self.display.app.show_welcome()
+            self.display.run()
+        else:
+            # 传统CLI模式
+            self._run_cli_mode()
+    
+    def _run_cli_mode(self):
+        """传统CLI模式"""
         self.display.show_welcome()
         
         while True:
@@ -148,7 +164,7 @@ class AICLI:
                     self.display.print(f"  {key}: {value}")
 
     def _handle_input(self, user_input: str):
-        """处理用户输入"""
+        """处理用户输入（传统CLI模式下使用）"""
         # 添加到历史记录
         self.session.add_message("user", user_input)
         
@@ -160,7 +176,7 @@ class AICLI:
         
         # 创建适配器
         try:
-            adapter = adapter_factory(
+            adapter = self.adapter_factory(
                 provider_config["protocol"],
                 provider_config
             )
@@ -176,14 +192,14 @@ class AICLI:
             provider_name = self.session.get_current_provider()
             
             # 调用模型（流式）
+            self.display.show_loading()
             full_response = ""
-            response_chunks = []
             
+            # 传统CLI模式下简单显示完整响应
             for chunk in adapter.chat_stream(messages):
                 full_response += chunk
-                response_chunks.append(chunk)
             
-            # 输出完整响应
+            self.display.hide_loading()
             self.display.show_model_output(full_response, provider_name)
             
             # 添加到历史记录
@@ -195,7 +211,8 @@ class AICLI:
 
 def main():
     """主函数"""
-    cli = AICLI()
+    # 默认使用Textual模式
+    cli = AICLI(use_textual=True)
     cli.run()
 
 
