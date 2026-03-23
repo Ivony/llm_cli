@@ -78,8 +78,9 @@ class AIChatApp(App):
     }
     
     .message-container {
-        margin: 1 0;
-        padding: 0 1;
+        margin: 0 0 0 0;
+        padding: 0 1 1 1;
+        height: auto;
     }
     
     .user-message {
@@ -88,6 +89,7 @@ class AIChatApp(App):
         border-left: thick #238636;
         padding: 1;
         margin: 0 2 0 0;
+        height: auto;
     }
     
     .assistant-message {
@@ -96,10 +98,12 @@ class AIChatApp(App):
         border-left: thick #1f6feb;
         padding: 1;
         margin: 0 0 0 2;
+        height: auto;
     }
     
     .assistant-message Markdown {
         width: 100%;
+        height: auto;
     }
     
     .input-area {
@@ -157,7 +161,8 @@ class AIChatApp(App):
     
     Markdown H1, Markdown H2, Markdown H3, Markdown H4, Markdown H5, Markdown H6 {
         color: #58a6ff;
-        margin: 1 0;
+        margin: 0 0 1 0;
+        height: auto;
     }
     
     Markdown CodeBlock {
@@ -165,6 +170,12 @@ class AIChatApp(App):
         border: solid #30363d;
         padding: 1;
         margin: 1 0;
+        height: auto;
+    }
+    
+    Markdown Paragraph {
+        margin: 0 0 1 0;
+        height: auto;
     }
     
     Markdown CodeInline {
