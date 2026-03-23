@@ -7,6 +7,7 @@ from textual.widgets import Static, Markdown, Input, Label, LoadingIndicator
 from textual.containers import Container, Vertical, Horizontal, ScrollableContainer
 from textual.widget import Widget
 from textual.reactive import var
+from textual.events import Click
 from typing import Optional, List, Dict, Any
 
 
@@ -106,6 +107,23 @@ class AIChatApp(App):
         color: #c9d1d9;
     }
     
+    .input-field:disabled {
+        color: #6e7681;
+        background: #161b22;
+    }
+    
+    .submit-btn {
+        width: 10;
+        background: #238636;
+        color: white;
+        content-align: center middle;
+    }
+    
+    .submit-btn:disabled {
+        background: #21262d;
+        color: #6e7681;
+    }
+    
     .footer {
         height: 2;
         background: #161b22;
@@ -165,6 +183,7 @@ class AIChatApp(App):
     
     current_stream_message: var[Optional[Message]] = var(None)
     is_streaming: var[bool] = var(False)
+    is_busy: var[bool] = var(False)  # 标记是否正在处理请求
     input_buffer: var[str] = var("")
     user_input_event: var[Optional[asyncio.Event]] = var(None)
     
@@ -184,6 +203,7 @@ class AIChatApp(App):
         yield Horizontal(
             Label("user>", classes="prompt-label"),
             Input(placeholder="Type your message here...", classes="input-field", id="user-input"),
+            Static("Send", classes="submit-btn", id="submit-btn"),
             classes="input-area"
         )
         yield Static("Type /help for commands | Ctrl+C to exit", classes="footer")
@@ -195,6 +215,18 @@ class AIChatApp(App):
         # 在应用启动后显示欢迎消息
         self.show_welcome()
     
+    def watch_is_busy(self, is_busy: bool) -> None:
+        """监听is_busy状态变化，更新UI"""
+        submit_btn = self.query_one("#submit-btn", Static)
+        if is_busy:
+            submit_btn.update("Waiting...")
+            submit_btn.add_class("disabled")
+            submit_btn.styles.opacity = 0.5
+        else:
+            submit_btn.update("Send")
+            submit_btn.remove_class("disabled")
+            submit_btn.styles.opacity = 1.0
+    
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         """处理用户输入提交"""
         input_text = event.value.strip()
@@ -204,19 +236,46 @@ class AIChatApp(App):
         # 清空输入框
         event.input.clear()
         
-        # 如果是命令，直接处理
+        # 调用统一处理方法
+        await self._submit_input(input_text)
+    
+    async def on_click(self, event: Click) -> None:
+        """处理点击事件"""
+        from textual.widgets import Static
+        
+        if isinstance(event.widget, Static) and event.widget.id == "submit-btn":
+            if not self.is_busy:
+                # 点击发送按钮
+                input_field = self.query_one("#user-input", Input)
+                input_text = input_field.value.strip()
+                if input_text:
+                    input_field.clear()
+                    await self._submit_input(input_text)
+    
+    async def _submit_input(self, input_text: str) -> None:
+        """统一的输入提交处理"""
+        if self.is_busy:
+            return
+        
         if input_text.startswith("/"):
             await self.handle_command(input_text)
             return
         
-        # 添加用户消息到界面
-        self.add_user_message(input_text)
+        # 设置忙状态
+        self.is_busy = True
         
-        # 显示加载状态
-        self.show_loading()
-        
-        # 处理输入（在后台任务中）
-        await self.handle_user_input(input_text)
+        try:
+            # 添加用户消息到界面
+            self.add_user_message(input_text)
+            
+            # 显示加载状态
+            self.show_loading()
+            
+            # 处理输入（在后台任务中）
+            await self.handle_user_input(input_text)
+        finally:
+            # 清除忙状态
+            self.is_busy = False
     
     async def handle_command(self, command: str) -> None:
         """处理命令输入"""
@@ -248,7 +307,7 @@ Available commands:
         self.add_system_message(f"Unknown command: {command}")
     
     async def handle_user_input(self, user_input: str) -> None:
-        """处理用户输入"""
+        """处理用户输入 - 使用后台线程避免UI阻塞"""
         if self.cli:
             try:
                 # 获取当前提供程序配置
@@ -278,17 +337,46 @@ Available commands:
                 # 开始流式输出
                 self.start_assistant_message()
                 
+                # 在后台线程中运行适配器调用，并使用队列传递结果
+                response_queue = asyncio.Queue()
+                
+                def stream_worker():
+                    """在后台线程中运行的流式请求"""
+                    try:
+                        for chunk in adapter.chat_stream(messages):
+                            response_queue.put_nowait(("chunk", chunk))
+                        response_queue.put_nowait(("done", None))
+                    except Exception as e:
+                        response_queue.put_nowait(("error", str(e)))
+                
+                # 启动后台线程
+                import threading
+                worker_thread = threading.Thread(target=stream_worker, daemon=True)
+                worker_thread.start()
+                
+                # 处理队列中的响应
                 full_response = ""
-                for chunk in adapter.chat_stream(messages):
-                    full_response += chunk
-                    self.update_assistant_message(full_response)
-                    await asyncio.sleep(0.01)  # 给UI刷新的机会
+                while True:
+                    try:
+                        msg_type, data = await asyncio.wait_for(response_queue.get(), timeout=0.1)
+                        
+                        if msg_type == "chunk":
+                            full_response += data
+                            self.update_assistant_message(full_response)
+                        elif msg_type == "done":
+                            break
+                        elif msg_type == "error":
+                            raise Exception(data)
+                            
+                    except asyncio.TimeoutError:
+                        # 超时继续，给UI刷新的机会
+                        continue
                 
                 # 添加到历史记录
                 self.cli.session.add_message("assistant", full_response)
                 
             except Exception as e:
-                self.add_system_message(f"Failed to get response: {e}")
+                self.add_system_message(f"Failed to get response: {str(e)}")
             finally:
                 self.hide_loading()
                 self.end_assistant_message()
