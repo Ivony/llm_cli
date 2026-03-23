@@ -136,16 +136,16 @@ class AICLI:
         config = self.config.config
         self.display.show_info("Current configuration:")
         for section, values in config.items():
-            self.display.console.print(f"[bold cyan]{section}:[/bold cyan]")
+            self.display.show_info(f"{section}:")
             for key, value in values.items():
                 if isinstance(value, dict):
-                    self.display.console.print(f"  [bold]{key}:[/bold]")
+                    self.display.show_info(f"  {key}:")
                     for k, v in value.items():
                         if k == "api_key" and v:
                             v = "***" + v[-4:]
-                        self.display.console.print(f"    {k}: {v}")
+                        self.display.print(f"    {k}: {v}")
                 else:
-                    self.display.console.print(f"  {key}: {value}")
+                    self.display.print(f"  {key}: {value}")
 
     def _handle_input(self, user_input: str):
         """处理用户输入"""
@@ -176,16 +176,15 @@ class AICLI:
             provider_name = self.session.get_current_provider()
             
             # 调用模型（流式）
-            self.display.console.print(f"[bold blue]{provider_name}:[/bold blue] ", end="")
             full_response = ""
+            response_chunks = []
             
             for chunk in adapter.chat_stream(messages):
                 full_response += chunk
-                # 实时输出
-                self.display.console.print(chunk, end="")
+                response_chunks.append(chunk)
             
-            # 换行
-            self.display.console.print()
+            # 输出完整响应
+            self.display.show_model_output(full_response, provider_name)
             
             # 添加到历史记录
             self.session.add_message("assistant", full_response)

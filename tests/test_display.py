@@ -22,8 +22,7 @@ def test_show_user_input():
     }
     display = DisplayManager(config)
     
-    # 模拟console.print方法
-    with patch.object(display.console, 'print') as mock_print:
+    with patch('builtins.print') as mock_print:
         display.show_user_input("Hello")
         mock_print.assert_called_once()
 
@@ -37,7 +36,7 @@ def test_show_model_output():
     }
     display = DisplayManager(config)
     
-    with patch.object(display.console, 'print') as mock_print:
+    with patch('builtins.print') as mock_print:
         display.show_model_output("Hi there!")
         mock_print.assert_called_once()
 
@@ -51,7 +50,7 @@ def test_show_error():
     }
     display = DisplayManager(config)
     
-    with patch.object(display.console, 'print') as mock_print:
+    with patch('builtins.print') as mock_print:
         display.show_error("Error message")
         mock_print.assert_called_once()
 
@@ -65,7 +64,7 @@ def test_show_info():
     }
     display = DisplayManager(config)
     
-    with patch.object(display.console, 'print') as mock_print:
+    with patch('builtins.print') as mock_print:
         display.show_info("Info message")
         mock_print.assert_called_once()
 
@@ -79,7 +78,7 @@ def test_show_warning():
     }
     display = DisplayManager(config)
     
-    with patch.object(display.console, 'print') as mock_print:
+    with patch('builtins.print') as mock_print:
         display.show_warning("Warning message")
         mock_print.assert_called_once()
 
@@ -93,9 +92,9 @@ def test_clear():
     }
     display = DisplayManager(config)
     
-    with patch.object(display.console, 'clear') as mock_clear:
+    with patch('os.system') as mock_system:
         display.clear()
-        mock_clear.assert_called_once()
+        mock_system.assert_called_once()
 
 
 def test_show_welcome():
@@ -107,7 +106,7 @@ def test_show_welcome():
     }
     display = DisplayManager(config)
     
-    with patch.object(display.console, 'print') as mock_print:
+    with patch('builtins.print') as mock_print:
         display.show_welcome()
         mock_print.assert_called_once()
 
@@ -121,6 +120,6 @@ def test_show_help():
     }
     display = DisplayManager(config)
     
-    with patch.object(display.console, 'print') as mock_print:
+    with patch('builtins.print') as mock_print:
         display.show_help()
         mock_print.assert_called_once()

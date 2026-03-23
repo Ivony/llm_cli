@@ -7,15 +7,16 @@
 - 与大型语言模型的交互式对话
 - 支持多个模型提供程序
 - 管理不同 API URL 的端点
-- 丰富的终端输出格式化
+- 彩色终端输出格式化
 - 会话历史管理
 - 上下文长度控制
+- 本地文件加载到对话上下文
 
 ## 安装
 
 ### 前提条件
 
-- Python 3.7+
+- Python 3.8+
 - Pip
 
 ### 安装步骤
@@ -28,16 +29,12 @@
 
 2. 安装依赖：
    ```bash
-   pip install -e .
+   pip install -r requirements.txt
    ```
 
 3. 运行工具：
    ```bash
-   ai-cli
-   # 或者
    python main.py
-   # 或者
-   python -m ai_cli.cli
    ```
 
 ## 使用方法
@@ -154,12 +151,19 @@ user> 请分析这个文件的内容
 
 配置存储在 `config.yaml` 文件中。您可以手动编辑它，或使用命令行命令来管理它。
 
+## 依赖列表
+
+- **prompt_toolkit** - 交互式命令行界面
+- **textual** - 终端UI框架和彩色输出
+- **requests** - HTTP请求调用LLM API
+- **pyyaml** - YAML配置文件处理
+
 ## 测试
 
 运行测试套件：
 
 ```bash
-python -m pytest tests/
+python -m pytest tests/ -v
 ```
 
 ## 许可证
