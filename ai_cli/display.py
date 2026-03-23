@@ -307,7 +307,7 @@ Available commands:
         self.add_system_message(f"Unknown command: {command}")
     
     async def handle_user_input(self, user_input: str) -> None:
-        """处理用户输入 - 使用后台线程避免UI阻塞"""
+        """处理用户输入 - 使用httpx异步请求避免UI阻塞"""
         if self.cli:
             try:
                 # 获取当前提供程序配置
@@ -337,40 +337,29 @@ Available commands:
                 # 开始流式输出
                 self.start_assistant_message()
                 
-                # 在后台线程中运行适配器调用，并使用队列传递结果
-                response_queue = asyncio.Queue()
-                
-                def stream_worker():
-                    """在后台线程中运行的流式请求"""
-                    try:
-                        for chunk in adapter.chat_stream(messages):
-                            response_queue.put_nowait(("chunk", chunk))
-                        response_queue.put_nowait(("done", None))
-                    except Exception as e:
-                        response_queue.put_nowait(("error", str(e)))
-                
-                # 启动后台线程
-                import threading
-                worker_thread = threading.Thread(target=stream_worker, daemon=True)
-                worker_thread.start()
-                
-                # 处理队列中的响应
+                # 使用httpx异步流式请求，无需线程
                 full_response = ""
-                while True:
-                    try:
-                        msg_type, data = await asyncio.wait_for(response_queue.get(), timeout=0.1)
-                        
-                        if msg_type == "chunk":
-                            full_response += data
+                try:
+                    if hasattr(adapter, 'chat_stream_async'):
+                        # 支持异步流式接口（httpx版本）
+                        async for chunk in adapter.chat_stream_async(messages):
+                            full_response += chunk
                             self.update_assistant_message(full_response)
-                        elif msg_type == "done":
-                            break
-                        elif msg_type == "error":
-                            raise Exception(data)
-                            
-                    except asyncio.TimeoutError:
-                        # 超时继续，给UI刷新的机会
-                        continue
+                            # 给UI刷新的机会
+                            await asyncio.sleep(0)
+                    else:
+                        # 兼容同步接口（回退方案）
+                        for chunk in adapter.chat_stream(messages):
+                            full_response += chunk
+                            self.update_assistant_message(full_response)
+                            await asyncio.sleep(0)
+                finally:
+                    # 关闭httpx客户端（如果适配器支持）
+                    if hasattr(adapter, 'close'):
+                        if asyncio.iscoroutinefunction(adapter.close):
+                            await adapter.close()
+                        else:
+                            adapter.close()
                 
                 # 添加到历史记录
                 self.cli.session.add_message("assistant", full_response)
