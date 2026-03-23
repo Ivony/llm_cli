@@ -192,6 +192,8 @@ class AIChatApp(App):
         """应用启动时"""
         self.query_one("#loading", Static).display = False
         self.query_one("#user-input", Input).focus()
+        # 在应用启动后显示欢迎消息
+        self.show_welcome()
     
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         """处理用户输入提交"""

@@ -69,7 +69,6 @@ class AICLI:
         """运行交互式会话"""
         if self.use_textual:
             # Textual模式 - 使用Textual App进行完整的GUI交互
-            self.display.app.show_welcome()
             self.display.run()
         else:
             # 传统CLI模式
