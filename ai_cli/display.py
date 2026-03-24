@@ -388,6 +388,13 @@ Available commands:
     def update_assistant_message(self, content: str) -> None:
         """更新助手消息内容（用于流式输出）"""
         if self.current_stream_message:
+            # 使用call_later延迟UI更新，避免快速回调阻塞事件循环
+            # 批量更新，每16ms（约60fps）更新一次，平衡流畅度和响应性
+            self.call_later(0.016, self._do_update_message, content)
+    
+    def _do_update_message(self, content: str) -> None:
+        """实际执行消息更新（由call_later调用）"""
+        if self.current_stream_message and self.is_streaming:
             self.current_stream_message.update_content(content)
             container = self.query_one("#chat-container", Vertical)
             container.scroll_end(animate=False)

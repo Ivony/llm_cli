@@ -1,5 +1,6 @@
 import httpx
 import json
+import asyncio
 from typing import Dict, List, Any, Generator, AsyncGenerator
 from .base import ModelAdapter
 
@@ -84,6 +85,8 @@ class OpenAIAdapter(ModelAdapter):
                             content = data.get('choices', [{}])[0].get('delta', {}).get('content')
                             if content:
                                 yield content
+                                # 给UI事件循环留出处理时间（1ms延迟）
+                                await asyncio.sleep(0.001)
                         except json.JSONDecodeError:
                             pass
     

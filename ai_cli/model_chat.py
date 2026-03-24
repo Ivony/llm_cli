@@ -90,15 +90,15 @@ class ModelChatManager:
                         full_response += chunk
                         if on_chunk:
                             on_chunk(full_response)
-                        # 给UI刷新的机会
-                        await asyncio.sleep(0)
+                        # 给UI刷新的机会（2ms确保事件循环有时间处理UI事件）
+                        await asyncio.sleep(0.002)
                 else:
                     # 兼容同步接口（回退方案）
                     for chunk in adapter.chat_stream(messages):
                         full_response += chunk
                         if on_chunk:
                             on_chunk(full_response)
-                        await asyncio.sleep(0)
+                        await asyncio.sleep(0.01)
             finally:
                 # 关闭httpx客户端（如果适配器支持）
                 if hasattr(adapter, 'close'):
